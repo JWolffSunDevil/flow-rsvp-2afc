@@ -40,7 +40,7 @@
     {name:"Medium", rsvpHz:14, letterMs:750, durationMs:30000},
     {name:"Hard",   rsvpHz:20, letterMs:600, durationMs:30000},
   ];
-  const TARGETS_PER_BLOCK = 4;        // fewer for stability while testing
+  const TARGETS_PER_BLOCK = 4;
   const TARGET_GAP_MS_MIN = 6000;
   const TARGET_GAP_MS_JIT = 4000;
   const LETTERS = [
@@ -51,7 +51,7 @@
   ];
   const CHOICE_LEFT  = "KeyF";
   const CHOICE_RIGHT = "KeyJ";
-  const CONF_KEYS = ["Digit1","Digit2","Digit3","Digit4"]; // 1..4
+  const CONF_KEYS = ["Digit1","Digit2","Digit3","Digit4"];   // 1..4
   const FLOW_KEYS  = ["Digit1","Digit2","Digit3","Digit4","Digit5"]; // 1..5
 
   // ===== State =====
@@ -86,7 +86,7 @@
     clearKeyHandler();
     S.keyHandler = (e)=>{
       if (!allowedCodes || allowedCodes.includes(e.code)){
-        const code = allowedCodes? e.code : e.code; // pass through
+        const code = allowedCodes ? e.code : e.code;
         clearKeyHandler();
         cb(code);
       }
@@ -162,9 +162,7 @@
       while (t >= S.nextRsvpAt){
         S.nextRsvpAt += S.rsvpInterval;
         const elapsed = t - S.blockStart;
-        // default random digit
         let digit = randint(0,9);
-        // if a target scheduled near this time, use it once
         for (const tgt of S.targets){
           if (!tgt.shown && Math.abs(elapsed - tgt.at) <= S.rsvpInterval){ digit = tgt.digit; tgt.shown = true; break; }
         }
@@ -292,8 +290,7 @@
       };
       lines.push(cols.map(k=>row[k]).join(','));
     }
-    const csv = lines.join('\n');
-');
+    const csv = lines.join('\n');   // ✅ fixed
     const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
     screen.innerHTML = html`<h1>Finished 🎉</h1><p class="center">Thanks for participating.</p><div class="center" style="margin-top:16px"><a class="btn" id="dl" download="flow_rsvp_results.csv">Download results CSV</a></div>`;
     document.getElementById('dl').href = url;
