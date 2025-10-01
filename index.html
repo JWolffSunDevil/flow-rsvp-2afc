@@ -292,7 +292,7 @@
       };
       lines.push(cols.map(k=>row[k]).join(','));
     }
-    const csv = lines.join('
+    const csv = lines.join('\n');
 ');
     const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
     screen.innerHTML = html`<h1>Finished 🎉</h1><p class="center">Thanks for participating.</p><div class="center" style="margin-top:16px"><a class="btn" id="dl" download="flow_rsvp_results.csv">Download results CSV</a></div>`;
