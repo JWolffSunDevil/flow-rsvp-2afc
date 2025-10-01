@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Flow + Peripheral RSVP (2AFC + Confidence)</title>
 <style>
-  :root {
-    --bg:#0b1117; --fg:#e6edf3; --muted:#9aa7b2; --accent:#6aa6ff; --ok:#2ecc71; --warn:#f1c40f;
-  }
+  :root { --bg:#0b1117; --fg:#e6edf3; --muted:#9aa7b2; --accent:#6aa6ff; }
   html,body { margin:0; padding:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;}
   #app { display:flex; align-items:center; justify-content:center; height:100%; }
-  .card { width:min(900px,92vw); border:1px solid #243041; border-radius:16px; padding:28px 28px 24px; box-shadow:0 10px 30px rgba(0,0,0,.25); background:linear-gradient(180deg,#0e1520 0%,#0b1117 100%); }
+  .card { width:min(900px,92vw); border:1px solid #243041; border-radius:16px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,.25); background:linear-gradient(180deg,#0e1520 0%,#0b1117 100%); }
   h1 { margin:0 0 6px 0; font-size:22px; color:#d5e2f0; }
   p { color:var(--muted); line-height:1.5; }
   .center { text-align:center; }
@@ -30,27 +28,21 @@
   .choice:hover { outline:2px solid #3b4f70; }
   .muted { opacity:.7 }
   .foot { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; }
-  .hidden { display:none; }
 </style>
 </head>
 <body>
-<div id="app">
-  <div class="card">
-    <div id="screen"></div>
-  </div>
-</div>
-
+<div id="app"><div class="card"><div id="screen"></div></div></div>
 <script>
 (function(){
-  // ------- CONFIG -------
+  // ===== CONFIG (feel free to tweak) =====
   const BLOCKS = [
-    {name:"Easy",   rsvpHz:8,  letterMs:900, durationMs:60000},
-    {name:"Medium", rsvpHz:14, letterMs:750, durationMs:60000},
-    {name:"Hard",   rsvpHz:20, letterMs:600, durationMs:60000},
+    {name:"Easy",   rsvpHz:8,  letterMs:900, durationMs:30000},
+    {name:"Medium", rsvpHz:14, letterMs:750, durationMs:30000},
+    {name:"Hard",   rsvpHz:20, letterMs:600, durationMs:30000},
   ];
-  const TARGETS_PER_BLOCK = 6;
-  const TARGET_GAP_MS_MIN = 8000;
-  const TARGET_GAP_MS_JIT = 6000;
+  const TARGETS_PER_BLOCK = 4;        // fewer for stability while testing
+  const TARGET_GAP_MS_MIN = 6000;
+  const TARGET_GAP_MS_JIT = 4000;
   const LETTERS = [
     {ch:"F", code:"KeyF"},
     {ch:"J", code:"KeyJ"},
@@ -59,31 +51,255 @@
   ];
   const CHOICE_LEFT  = "KeyF";
   const CHOICE_RIGHT = "KeyJ";
-  const CONF_KEYS = ["Digit1","Digit2","Digit3","Digit4"];
-  const FLOW_KEYS  = ["Digit1","Digit2","Digit3","Digit4","Digit5"];
+  const CONF_KEYS = ["Digit1","Digit2","Digit3","Digit4"]; // 1..4
+  const FLOW_KEYS  = ["Digit1","Digit2","Digit3","Digit4","Digit5"]; // 1..5
 
-  const S = {phase:"intro",blockIndex:-1,timers:[],rsvpInterval:125,nextLetterAt:0,nextRsvpAt:0,endAt:0,blockStart:0,curLetter:null,targets:[],log:[]};
-  function now(){return performance.now();}
-  function randint(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
-  function sample(arr){return arr[Math.floor(Math.random()*arr.length)];}
-  const screen=document.getElementById("screen");
-  function html(strings,...vals){return strings.map((s,i)=>s+(vals[i]??"")).join("");}
-  function clearTimers(){S.timers.forEach(clearInterval);S.timers.length=0;}
-  function multiKey(codes,ms,fn){const h=(e)=>{if(codes.includes(e.code)){window.removeEventListener("keydown",h);fn(e.code);}};window.addEventListener("keydown",h);if(ms>0)setTimeout(()=>{window.removeEventListener("keydown",h);fn(null);},ms);}
+  // ===== State =====
+  const S = {
+    phase:"intro",
+    blockIndex:-1,
+    rsvpInterval:125,
+    nextLetterAt:0,
+    nextRsvpAt:0,
+    endAt:0,
+    blockStart:0,
+    curLetter:null,
+    targets:[],
+    log:[],
+    rafId:0,
+    keyHandler:null,
+    keyTimeout:null
+  };
 
-  function intro(){S.phase="intro";screen.innerHTML=html`<h1>Typing game + faint corner digits</h1><p>Press F/J/K/L as fast as you can. Ignore digits.</p><div class="layout"><div class="rsvp">7</div><div class="letter big muted">F</div></div><div class="center"><button class="btn" id="start">Start</button></div>`;document.getElementById("start").onclick=()=>startNextBlock();}
-  function startNextBlock(){S.blockIndex++;if(S.blockIndex>=BLOCKS.length)return finish();runBlock(BLOCKS[S.blockIndex]);}
-  function scheduleTargets(durationMs){const targets=[];let t=5000+randint(0,3000);for(let i=0;i<TARGETS_PER_BLOCK;i++){targets.push({at:t,digit:randint(0,9),shown:false});t+=TARGET_GAP_MS_MIN+randint(0,TARGET_GAP_MS_JIT);if(t>durationMs-1000)break;}return targets;}
-  function runBlock(cfg){S.phase="block";S.rsvpInterval=Math.max(30,Math.round(1000/cfg.rsvpHz));S.nextLetterAt=0;S.nextRsvpAt=0;S.blockStart=now();S.endAt=S.blockStart+cfg.durationMs;S.targets=scheduleTargets(cfg.durationMs);
-    screen.innerHTML=html`<div class="foot"><div class="pill">${cfg.name}</div><div class="hint">Press F / J / K / L</div></div><div class="layout"><div id="rsvp" class="rsvp"></div><div id="letter" class="letter"></div></div><div class="foot"><span id="timer"></span></div>`;const elLetter=document.getElementById("letter");const elRSVP=document.getElementById("rsvp");const elTimer=document.getElementById("timer");
-    let rafId=0;function loop(){const t=now();if(t>=S.endAt){cancelAnimationFrame(rafId);clearTimers();return postBlock();}elTimer.textContent=`Time left: ${Math.max(0,Math.round((S.endAt-t)/1000))}s`;
-      if(t>=S.nextRsvpAt){S.nextRsvpAt=t+S.rsvpInterval;const elapsed=t-S.blockStart;let digit=randint(0,9);for(const tgt of S.targets){if(!tgt.shown&&Math.abs(elapsed-tgt.at)<=S.rsvpInterval){digit=tgt.digit;tgt.shown=true;S.log.push({type:"RSVP",block:S.blockIndex,ts:elapsed|0,digit,target:1});break;}}elRSVP.textContent=digit;S.log.push({type:"RSVP",block:S.blockIndex,ts:elapsed|0,digit,target:0});}
-      if(t>=S.nextLetterAt){S.nextLetterAt=t+cfg.letterMs;const L=sample(LETTERS);S.curLetter=L;elLetter.textContent=L.ch;const start=now();multiKey(LETTERS.map(x=>x.code),cfg.letterMs-20,(code)=>{const rt=Math.round(now()-start);const correct=code?(code===L.code?1:0):0;S.log.push({type:"LETTER",block:S.blockIndex,ts:Math.round(now()-S.blockStart),letter:L.ch,req:L.code,resp:code||"NONE",rt,correct});});}
-      rafId=requestAnimationFrame(loop);}loop();}
-  function postBlock(){const seen=S.targets.filter(t=>t.shown);let idx=0;const next=()=>{if(idx>=seen.length)return postBlockSurvey();twoAFC(seen[idx++].digit,next);};next();}
-  function twoAFC(correctDigit,done){const foil=((d)=>{let x=randint(0,9);if(x===d)x=(x+1)%10;return x;})(correctDigit);const side=Math.random()<0.5?"L":"R";const L=side==="L"?correctDigit:foil;const R=side==="R"?correctDigit:foil;screen.innerHTML=html`<h1>Digit memory check</h1><div class="grid2"><div class="choice">${L}</div><div class="choice">${R}</div></div><p class="center hint">Press F (left) or J (right)</p>`;const started=now();multiKey([CHOICE_LEFT,CHOICE_RIGHT],20000,(code)=>{const choose=(code===CHOICE_LEFT)?L:(code===CHOICE_RIGHT)?R:null;const rt=Math.round(now()-started);const isCorrect=choose!==null?(choose===correctDigit):0;S.log.push({type:"RECOG",block:S.blockIndex,correct:correctDigit,foil,side,choice:choose,rt,isCorrect});screen.innerHTML=html`<h1>Confidence (1–4)</h1><div class="row"><div class="pill">1 Not</div><div class="pill">2 Slightly</div><div class="pill">3 Mostly</div><div class="pill">4 Very</div></div><p class="center hint">Press number key 1–4</p>`;const confStart=now();multiKey(CONF_KEYS,20000,(code2)=>{const conf=code2?(CONF_KEYS.indexOf(code2)+1):null;const crt=Math.round(now()-confStart);S.log.push({type:"CONF",block:S.blockIndex,conf,rt:crt});done();});});}
-  function postBlockSurvey(){let step=0;const qs=["Challenge matched my skill (1..5)","I was fully concentrated (1..5)","I lost track of time (1..5)","I enjoyed that round (1..5)"];const ask=()=>{if(step<qs.length){screen.innerHTML=html`<h1>After-round questions</h1><p class="center mid">${qs[step]}</p><p class="center hint">Press 1..5</p>`;multiKey(FLOW_KEYS,20000,(code)=>{const val=code?(FLOW_KEYS.indexOf(code)+1):null;S.log.push({type:"FLOW",block:S.blockIndex,item:step+1,val});step++;ask();});}else{let typed="";const render=()=>{screen.innerHTML=html`<h1>How many seconds did that round feel like?</h1><div class="center mid">${typed||"—"}</div><p class="center hint">Type 2–3 digits, then press Enter</p>`;};render();const onKey=(e)=>{if(/Digit[0-9]/.test(e.code)&&typed.length<3){typed+=e.code.replace("Digit","");render();}else if(e.code==="Backspace"){typed=typed.slice(0,-1);render();}else if(e.code==="Enter"){window.removeEventListener("keydown",onKey);const val=typed?parseInt(typed,10):null;S.log.push({type:"TIME_EST",block:S.blockIndex,seconds:val});startNextBlock();}};window.addEventListener("keydown",onKey);}};ask();}
-  function finish(){S.phase="done";const cols=["type","block","ts","digit","target","letter","req","resp","rt","correct","correctDigit","foil","side","choice","isCorrect","conf","seconds"];const lines=[cols.join(",")];for(const r of S.log){const row={type:r.type||"",block:(r.block??""),ts:(r.ts??""),digit:(r.digit??""),target:(r.target??""),letter:(r.letter??""),req:(r.req??""),resp:(r.resp??""),rt:(r.rt??""),correct:(r.correct??""),correctDigit:(r.correct??""),foil:(r.foil??""),side:(r.side??""),choice:(r.choice??""),isCorrect:(r.isCorrect??""),conf:(r.conf??""),seconds:(r.seconds??"")};lines.push(cols.map(k=>row[k]).join(","));}const csv=lines.join("\n");const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);screen.innerHTML=html`<h1>Finished 🎉</h1><p class="center">Thanks for participating.</p><div class="center" style="margin-top:16px"><a class="btn" id="dl" download="flow_rsvp_results.csv">Download results CSV</a></div>`;document.getElementById("dl").href=url;}
+  // ===== Time helpers =====
+  const now = ()=> performance.now();
+  const randint = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+  const sample = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  // ===== DOM helpers =====
+  const screen = document.getElementById('screen');
+  const html = (s,...v)=> s.map((x,i)=> x + (v[i]??'')).join('');
+
+  // Single global key dispatcher -> prevents multiple stacked listeners
+  window.addEventListener('keydown', e=> { if (typeof S.keyHandler === 'function') S.keyHandler(e); });
+  function setKeyHandler(allowedCodes, ms, cb){
+    clearKeyHandler();
+    S.keyHandler = (e)=>{
+      if (!allowedCodes || allowedCodes.includes(e.code)){
+        const code = allowedCodes? e.code : e.code; // pass through
+        clearKeyHandler();
+        cb(code);
+      }
+    };
+    if (ms>0){
+      S.keyTimeout = setTimeout(()=>{ clearKeyHandler(); cb(null); }, ms);
+    }
+  }
+  function clearKeyHandler(){
+    if (S.keyTimeout){ clearTimeout(S.keyTimeout); S.keyTimeout=null; }
+    S.keyHandler = null;
+  }
+  function cancelLoop(){ if (S.rafId) { cancelAnimationFrame(S.rafId); S.rafId=0; } }
+
+  // ===== Screens =====
+  function intro(){
+    S.phase='intro';
+    cancelLoop(); clearKeyHandler();
+    screen.innerHTML = html`
+      <h1>Typing game + faint corner digits</h1>
+      <p>Press the shown letter quickly (<span class="kbd">F</span>, <span class="kbd">J</span>, <span class="kbd">K</span>, <span class="kbd">L</span>). Ignore the digits in the top-right.</p>
+      <div class="layout"><div class="rsvp">7</div><div class="letter big muted">F</div></div>
+      <div class="center"><button class="btn" id="start">Start</button></div>
+      <div class="row"><span class="pill">Then: quick digit memory</span><span class="pill">Confidence 1–4</span><span class="pill">Flow + time estimate</span></div>
+    `;
+    document.getElementById('start').onclick = ()=> startNextBlock();
+  }
+
+  function startNextBlock(){
+    S.blockIndex++;
+    if (S.blockIndex >= BLOCKS.length) return finish();
+    runBlock(BLOCKS[S.blockIndex]);
+  }
+
+  function scheduleTargets(durationMs){
+    const out=[]; let t = 3000 + randint(0,2000); // first ~3-5s
+    for (let i=0;i<TARGETS_PER_BLOCK;i++){
+      out.push({at:t, digit:randint(0,9), shown:false});
+      t += TARGET_GAP_MS_MIN + randint(0, TARGET_GAP_MS_JIT);
+      if (t > durationMs - 500) break;
+    }
+    return out;
+  }
+
+  function runBlock(cfg){
+    S.phase='block';
+    cancelLoop(); clearKeyHandler();
+    S.rsvpInterval = Math.max(30, Math.round(1000/cfg.rsvpHz));
+    S.blockStart = now();
+    S.endAt = S.blockStart + cfg.durationMs;
+    S.nextRsvpAt = S.blockStart + S.rsvpInterval;  // first tick after 1 interval
+    S.nextLetterAt = S.blockStart + 400;           // first letter after 400ms
+    S.targets = scheduleTargets(cfg.durationMs);
+
+    screen.innerHTML = html`
+      <div class="foot"><div class="pill">${cfg.name}</div><div class="hint">Press F / J / K / L</div></div>
+      <div class="layout">
+        <div id="rsvp" class="rsvp"></div>
+        <div id="letter" class="letter"></div>
+      </div>
+      <div class="foot"><span id="timer"></span></div>
+    `;
+    const elLetter = document.getElementById('letter');
+    const elRSVP   = document.getElementById('rsvp');
+    const elTimer  = document.getElementById('timer');
+
+    function loop(){
+      const t = now();
+      if (t >= S.endAt){ cancelLoop(); clearKeyHandler(); return postBlock(); }
+      elTimer.textContent = `Time left: ${Math.max(0, Math.round((S.endAt - t)/1000))}s`;
+
+      // RSVP
+      while (t >= S.nextRsvpAt){
+        S.nextRsvpAt += S.rsvpInterval;
+        const elapsed = t - S.blockStart;
+        // default random digit
+        let digit = randint(0,9);
+        // if a target scheduled near this time, use it once
+        for (const tgt of S.targets){
+          if (!tgt.shown && Math.abs(elapsed - tgt.at) <= S.rsvpInterval){ digit = tgt.digit; tgt.shown = true; break; }
+        }
+        elRSVP.textContent = digit;
+        S.log.push({type:'RSVP', block:S.blockIndex, ts:Math.round(elapsed), digit});
+      }
+
+      // Letters
+      if (t >= S.nextLetterAt){
+        S.nextLetterAt += cfg.letterMs;
+        const L = sample(LETTERS);
+        S.curLetter = L; elLetter.textContent = L.ch;
+        const start = now();
+        setKeyHandler(LETTERS.map(x=>x.code), cfg.letterMs - 30, (code)=>{
+          const rt = Math.round(now()-start);
+          const correct = code ? (code===L.code?1:0) : 0;
+          S.log.push({type:'LETTER', block:S.blockIndex, ts:Math.round(now()-S.blockStart), letter:L.ch, req:L.code, resp:code||'NONE', rt, correct});
+        });
+      }
+
+      S.rafId = requestAnimationFrame(loop);
+    }
+    S.rafId = requestAnimationFrame(loop);
+  }
+
+  function postBlock(){
+    S.phase='after-block';
+    cancelLoop(); clearKeyHandler();
+    const seen = S.targets.filter(t=>t.shown);
+    let idx = 0;
+    const next = ()=>{ if (idx >= seen.length) return postBlockSurvey(); twoAFC(seen[idx++].digit, next); };
+    next();
+  }
+
+  function twoAFC(correctDigit, done){
+    cancelLoop(); clearKeyHandler();
+    const mkFoil = (d)=>{ let x = randint(0,9); if (x===d) x=(x+1)%10; return x; };
+    const foil = mkFoil(correctDigit);
+    const side = Math.random()<0.5 ? 'L' : 'R';
+    const Ld = side==='L' ? correctDigit : foil;
+    const Rd = side==='R' ? correctDigit : foil;
+
+    screen.innerHTML = html`
+      <h1>Digit memory check</h1>
+      <div class="grid2">
+        <div class="choice">${Ld}</div>
+        <div class="choice">${Rd}</div>
+      </div>
+      <p class="center hint">Press F (left) or J (right)</p>
+    `;
+    const start = now();
+    setKeyHandler([CHOICE_LEFT, CHOICE_RIGHT], 20000, (code)=>{
+      const choice = code===CHOICE_LEFT ? Ld : code===CHOICE_RIGHT ? Rd : null;
+      const rt = Math.round(now()-start);
+      const isCorrect = choice!==null ? (choice===correctDigit) : 0;
+      S.log.push({type:'RECOG', block:S.blockIndex, correct:correctDigit, foil, side, choice, rt, isCorrect});
+      confidence(done);
+    });
+  }
+
+  function confidence(next){
+    cancelLoop(); clearKeyHandler();
+    screen.innerHTML = html`
+      <h1>Confidence (1–4)</h1>
+      <div class="row">
+        <div class="pill">1 Not</div><div class="pill">2 Slightly</div>
+        <div class="pill">3 Mostly</div><div class="pill">4 Very</div>
+      </div>
+      <p class="center hint">Press 1..4</p>
+    `;
+    const start = now();
+    setKeyHandler(CONF_KEYS, 20000, (code)=>{
+      const conf = code ? (CONF_KEYS.indexOf(code)+1) : null;
+      const rt = Math.round(now()-start);
+      S.log.push({type:'CONF', block:S.blockIndex, conf, rt});
+      next();
+    });
+  }
+
+  function postBlockSurvey(){
+    cancelLoop(); clearKeyHandler();
+    const qs = [
+      'Challenge matched my skill (1..5)',
+      'I was fully concentrated (1..5)',
+      'I lost track of time (1..5)',
+      'I enjoyed that round (1..5)'
+    ];
+    let i=0;
+    const ask = ()=>{
+      if (i<qs.length){
+        screen.innerHTML = html`<h1>After-round questions</h1><p class="center mid">${qs[i]}</p><p class="center hint">Press 1..5</p>`;
+        setKeyHandler(FLOW_KEYS, 20000, (code)=>{
+          const val = code ? (FLOW_KEYS.indexOf(code)+1) : null;
+          S.log.push({type:'FLOW', block:S.blockIndex, item:i+1, val});
+          i++; ask();
+        });
+      } else {
+        timeEstimate();
+      }
+    };
+    ask();
+  }
+
+  function timeEstimate(){
+    cancelLoop(); clearKeyHandler();
+    let typed = '';
+    const render = ()=>{
+      screen.innerHTML = html`<h1>How many seconds did that round feel like?</h1><div class="center mid">${typed||'—'}</div><p class="center hint">Type 2–3 digits, then Enter</p>`;
+    };
+    render();
+    S.keyHandler = (e)=>{
+      if (/Digit[0-9]/.test(e.code) && typed.length<3){ typed += e.code.replace('Digit',''); render(); }
+      else if (e.code==='Backspace'){ typed = typed.slice(0,-1); render(); }
+      else if (e.code==='Enter'){ clearKeyHandler(); const val = typed?parseInt(typed,10):null; S.log.push({type:'TIME_EST', block:S.blockIndex, seconds:val}); startNextBlock(); }
+    };
+  }
+
+  function finish(){
+    cancelLoop(); clearKeyHandler();
+    const cols = ['type','block','ts','digit','letter','req','resp','rt','correct','correctDigit','foil','side','choice','isCorrect','conf','seconds'];
+    const lines = [cols.join(',')];
+    for (const r of S.log){
+      const row = {
+        type:r.type||'', block:(r.block??''), ts:(r.ts??''), digit:(r.digit??''), letter:(r.letter??''), req:(r.req??''), resp:(r.resp??''), rt:(r.rt??''), correct:(r.correct??''), correctDigit:(r.correct??''), foil:(r.foil??''), side:(r.side??''), choice:(r.choice??''), isCorrect:(r.isCorrect??''), conf:(r.conf??''), seconds:(r.seconds??'')
+      };
+      lines.push(cols.map(k=>row[k]).join(','));
+    }
+    const csv = lines.join('
+');
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    screen.innerHTML = html`<h1>Finished 🎉</h1><p class="center">Thanks for participating.</p><div class="center" style="margin-top:16px"><a class="btn" id="dl" download="flow_rsvp_results.csv">Download results CSV</a></div>`;
+    document.getElementById('dl').href = url;
+  }
+
+  // go
   intro();
 })();
 </script>
