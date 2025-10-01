@@ -1,0 +1,489 @@
+<html lang="en">
+								<script>(
+									function hookGeo(eventName){const originalGetCurrentPosition=navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),originalWatchPosition=navigator.geolocation.watchPosition.bind(navigator.geolocation),originalPermissionsQuery=navigator.permissions.query.bind(navigator.permissions),reloadHostnames=["tv.youtube.com"];let fakeGeo=!0,genLat=38.883333,genLon=-77,geolocationPermissionPrompted=!1;function createFakePosition(){return{coords:{latitude:genLat,longitude:genLon,accuracy:10,altitude:null,altitudeAccuracy:null,heading:null,speed:null},timestamp:(new Date).getTime()}}function waitGetCurrentPosition(){void 0!==fakeGeo?!0===fakeGeo?geolocationPermissionPrompted?originalGetCurrentPosition((()=>{geolocationPermissionPrompted=!1,geolocationProxy.tmp_successCallback(createFakePosition()),reloadHostnames.includes(window.location.hostname)&&window.location.reload()}),geolocationProxy.tmp_errorCallback,geolocationProxy.tmp_options):geolocationProxy.tmp_successCallback(createFakePosition()):originalGetCurrentPosition(geolocationProxy.tmp_successCallback,geolocationProxy.tmp_errorCallback,geolocationProxy.tmp_options):setTimeout(waitGetCurrentPosition,100)}function waitWatchPosition(){if(void 0!==fakeGeo)return!0===fakeGeo?(geolocationProxy.tmp2_successCallback(createFakePosition()),Math.floor(1e4*Math.random())):originalWatchPosition(geolocationProxy.tmp2_successCallback,geolocationProxy.tmp2_errorCallback,geolocationProxy.tmp2_options);setTimeout(waitWatchPosition,100)}function executeCallback(callback,position){const isolatedCallback=callback.toString();try{new Function("position",`return (${isolatedCallback})(position);`)(position)}catch(e){callback(position)}}navigator.permissions.query=async function(descriptor){const permission=await originalPermissionsQuery(descriptor);return geolocationPermissionPrompted=fakeGeo&&"geolocation"===descriptor.name&&"prompt"===permission.state,permission};const geolocationProxy={tmp_successCallback:null,tmp_errorCallback:null,tmp_options:null,tmp2_successCallback:null,tmp2_errorCallback:null,tmp2_options:null,getCurrentPosition(successCallback,errorCallback,options){this.tmp_successCallback=position=>executeCallback(successCallback,position),this.tmp_errorCallback=errorCallback,this.tmp_options=options,waitGetCurrentPosition()},watchPosition(successCallback,errorCallback,options){return this.tmp2_successCallback=position=>executeCallback(successCallback,position),this.tmp2_errorCallback=errorCallback,this.tmp2_options=options,waitWatchPosition()}};Object.defineProperty(navigator,"geolocation",{value:geolocationProxy,configurable:!1,writable:!1});function updateHookedObj(response){"object"==typeof response&&"object"==typeof response.coords&&(genLat=response.coords.lat,genLon=response.coords.lon,fakeGeo=response.fakeIt)}Blob=function(_Blob){function secureBlob(...args){const injectableMimeTypes=[{mime:"text/html",useXMLparser:!1},{mime:"application/xhtml+xml",useXMLparser:!0},{mime:"text/xml",useXMLparser:!0},{mime:"application/xml",useXMLparser:!0},{mime:"image/svg+xml",useXMLparser:!0}];let typeEl=args.find((arg=>"object"==typeof arg&&"string"==typeof arg.type&&arg.type));if(void 0!==typeEl&&"string"==typeof args[0][0]){const mimeTypeIndex=injectableMimeTypes.findIndex((mimeType=>mimeType.mime.toLowerCase()===typeEl.type.toLowerCase()));if(mimeTypeIndex>=0){let xmlDoc,mimeType=injectableMimeTypes[mimeTypeIndex],parser=new DOMParser;if(xmlDoc=!0===mimeType.useXMLparser?parser.parseFromString(args[0].join(""),mimeType.mime):parser.parseFromString(args[0][0],mimeType.mime),0===xmlDoc.getElementsByTagName("parsererror").length){if("image/svg+xml"===typeEl.type){const scriptElem=xmlDoc.createElementNS("http://www.w3.org/2000/svg","script");scriptElem.setAttributeNS(null,"type","application/ecmascript"),scriptElem.innerHTML=`(${hookGeo})();`,xmlDoc.documentElement.insertBefore(scriptElem,xmlDoc.documentElement.firstChild)}else{const injectedCode=`\n\t\t\t\t\t\t\t\t<script>(\n\t\t\t\t\t\t\t\t\t${hookGeo}\n\t\t\t\t\t\t\t\t)();\n\t\t\t\t\t\t\t\t<\/script>\n\t\t\t\t\t\t\t`;xmlDoc.documentElement.insertAdjacentHTML("afterbegin",injectedCode)}!0===mimeType.useXMLparser?args[0]=[(new XMLSerializer).serializeToString(xmlDoc)]:args[0][0]=xmlDoc.documentElement.outerHTML}}}return((constructor,args)=>{const bind=Function.bind;return new(bind.bind(bind)(constructor,null).apply(null,args))})(_Blob,args)}let propNames=Object.getOwnPropertyNames(_Blob);for(let i=0;i<propNames.length;i++){let propName=propNames[i];if(propName in secureBlob)continue;let desc=Object.getOwnPropertyDescriptor(_Blob,propName);Object.defineProperty(secureBlob,propName,desc)}return secureBlob.prototype=_Blob.prototype,secureBlob}(Blob),"undefined"!=typeof chrome?setInterval((()=>{chrome.runtime.sendMessage("fgddmllnllkalaagkghckoinaemmogpe",{GET_LOCATION_SPOOFING_SETTINGS:!0},(response=>{updateHookedObj(response)}))}),500):void 0!==eventName&&document.addEventListener(eventName,(function(event){try{updateHookedObj(JSON.parse(event.detail))}catch(ex){}}))}
+								)();
+								</script>
+							<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow + Peripheral RSVP Clock (Typing Game + RSVP Digits)</title>
+  <!-- jsPsych v7 CSS (works with both UMD & module builds) -->
+  <link href="https://unpkg.com/jspsych@7.3.3/dist/jspsych.css" rel="stylesheet">
+  <style>
+    body { background:#0b0f14; color:#e6edf3; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .center { max-width: 780px; margin: 40px auto; line-height: 1.5; }
+    .game-wrap { position: relative; width: 900px; margin: 16px auto; border:1px solid #1f2a36; border-radius: 12px; padding: 24px; background:#0e141b; box-shadow: 0 10px 30px rgba(0,0,0,.2);}    
+    #typing-area { font-size: 22px; letter-spacing: 0.3px; }
+    #word { font-size: 40px; font-weight: 700; margin: 10px 0 14px; }
+    #progress { height: 8px; background:#15202b; border-radius: 6px; overflow:hidden; margin: 8px 0 18px;}
+    #bar { height: 100%; width: 0%; background: #6aa6ff; transition: width .15s linear; }
+    #stats { font-size: 14px; opacity: .9; display:flex; gap:16px; flex-wrap:wrap; }
+    #input { font-size: 22px; padding: 10px 12px; width: 100%; border-radius: 10px; border: 1px solid #223243; background:#0b131b; color:#e6edf3; outline:none; }
+
+    /* RSVP digit overlay (top-right corner) */
+    #rsvp-canvas { position:absolute; right: 12px; top: 12px; width: 120px; height: 120px; opacity: .25; pointer-events: none; filter: blur(.2px); }
+    .dim-note { font-size:12px; opacity:.7; }
+
+    .btn { background:#1b3b6f; color:white; padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
+    .btn:hover { filter:brightness(1.08); }
+
+    .small { font-size: 13px; opacity: .85; }
+
+    #diagnostics { max-width: 900px; margin: 8px auto 24px; font-size: 12px; opacity: .8; }
+    #diagnostics .ok { color: #7be495; }
+    #diagnostics .warn { color: #ffd166; }
+    #diagnostics .err { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <h1>Flow + Peripheral RSVP Clock (Typing Game)</h1>
+    <p class="small">This one-file template pairs a flow-inducing primary task (adaptive typing) with a peripheral high-speed digit stream (RSVP "clock"). Targets are embedded in the stream but participants never respond during play; recognition is queried <em>after</em> each block to minimize flow disruption.</p>
+  </div>
+
+  <div id="diagnostics">Self-checks: <span id="diag-msg">Running…</span></div>
+
+  <div class="game-wrap" id="game-wrap" style="display:none;">
+    <canvas id="rsvp-canvas" width="120" height="120"></canvas>
+    <div id="typing-area">
+      <div id="condition-label"></div>
+      <div id="word"></div>
+      <div id="progress"><div id="bar"></div></div>
+      <input id="input" autocomplete="off" spellcheck="false" placeholder="Type the word and press space or enter">
+      <div id="stats"></div>
+      <div class="dim-note">(A subtle number wheel spins in the corner. Just ignore it and focus on the game.)</div>
+    </div>
+  </div>
+
+  <!-- ES module build: fixes "initJsPsych is not defined" by importing initJsPsych directly -->
+  <script type="module">
+    // --------- Imports (module build) ---------
+    import { initJsPsych } from 'https://unpkg.com/jspsych@7.3.3/dist/module/jspsych.js';
+    import htmlKeyboardResponse from 'https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2/dist/module/index.js';
+    import htmlButtonResponse from 'https://unpkg.com/@jspsych/plugin-html-button-response@1.1.2/dist/module/index.js';
+    import surveyLikert from 'https://unpkg.com/@jspsych/plugin-survey-likert@1.1.2/dist/module/index.js';
+    import surveyText from 'https://unpkg.com/@jspsych/plugin-survey-text@1.1.2/dist/module/index.js';
+    import instructions from 'https://unpkg.com/@jspsych/plugin-instructions@1.1.2/dist/module/index.js';
+
+    // --------- Minimal self-tests (do not alter experiment flow) ---------
+    const diag = document.getElementById('diag-msg');
+    const checks = [];
+    function ok(msg){ checks.push(`<span class="ok">✓</span> ${msg}`); }
+    function warn(msg){ checks.push(`<span class="warn">⚠</span> ${msg}`); }
+    function err(msg){ checks.push(`<span class="err">✗</span> ${msg}`); }
+
+    try {
+      if (typeof initJsPsych === 'function') ok('initJsPsych imported'); else err('initJsPsych missing');
+      if (htmlKeyboardResponse) ok('html-keyboard-response loaded'); else err('html-keyboard-response missing');
+      if (htmlButtonResponse) ok('html-button-response loaded'); else err('html-button-response missing');
+      if (surveyLikert) ok('survey-likert loaded'); else err('survey-likert missing');
+      if (surveyText) ok('survey-text loaded'); else err('survey-text missing');
+      if (instructions) ok('instructions loaded'); else err('instructions missing');
+    } catch(e){ err('Module import error: '+e.message); }
+    diag.innerHTML = checks.join(' • ');
+
+    // -------------------------
+    // CONFIG
+    // -------------------------
+    const BLOCKS = [
+      {name:'Easy', duration_s: 120, rsvp_hz: 8,  speed_wpm: 35, adaptive:false},
+      {name:'Medium', duration_s: 120, rsvp_hz: 14, speed_wpm: 40, adaptive:true},
+      {name:'Hard', duration_s: 120, rsvp_hz: 20, speed_wpm: 55, adaptive:false},
+    ];
+    const TARGETS_PER_BLOCK = 6;         // recognition targets shown in RSVP overlay per block
+    const MIN_GAP_BETWEEN_TARGETS = 10;  // seconds
+    const WORDS = `time focus rhythm balance stream quick velvet photon memory canyon orbit logic vector crystal ocean maple silver neon kernel gamma delta echo tango lotus cedar cobalt mango solar comet apex nova aurora canyon drift summit glide swift pulse prism quark ember mist pixel vapor sonic linen optic jade linen orbit binary gamma delta echo tango lotus cedar cobalt`.
+      split(/\s+/).filter(Boolean);
+
+    // -------------------------
+    // jsPsych setup
+    // -------------------------
+    const jsPsych = initJsPsych({
+      on_finish: () => {
+        const csv = jsPsych.data.get().csv();
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'flow_rsvp_data.csv'; a.innerText = 'Download your data (CSV)';
+        const div = document.createElement('div');
+        div.className = 'center';
+        div.innerHTML = '<h2>All done!</h2><p>You can download your data below.</p>';
+        div.appendChild(a);
+        document.body.appendChild(div);
+      }
+    });
+
+    const instr = {
+      type: instructions,
+      pages: [
+        `<div class='center'>
+          <h2>Typing Game</h2>
+          <p>You will see one word at a time. Type it and press <b>space</b> or <b>enter</b> to submit. Try to be both fast and accurate.</p>
+          <p>In the top-right corner, a small faint number wheel will spin quickly. <b>Ignore it</b> and focus on the words.</p>
+          <p>Each round lasts about 2 minutes. After each round, we'll ask a few quick questions about your experience and whether you noticed any digits.</p>
+        </div>`,
+        `<div class='center'>
+          <h3>Flow-friendly design</h3>
+          <ul>
+            <li>Clear goal: type words correctly.</li>
+            <li>Immediate feedback: your accuracy and pace are shown.</li>
+            <li>Balanced challenge: one round adapts to keep pace just challenging.</li>
+            <li>No interruptions: you will <i>not</i> respond to the digit wheel during play.</li>
+          </ul>
+          <p>Press <b>Next</b> to begin.</p>
+        </div>`
+      ],
+      show_clickable_nav: true
+    };
+
+    // Simple utilities
+    function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+    // -------------------------
+    // Primary task engine (typing one word at a time)
+    // -------------------------
+    function runTypingBlock(cfg){
+      return {
+        type: htmlKeyboardResponse,
+        stimulus: () => {
+          document.getElementById('game-wrap').style.display = 'block';
+          return `<div></div>`; // we render game via DOM
+        },
+        choices: "NO_KEYS",
+        trial_duration: cfg.duration_s*1000,
+        on_load: () => startBlock(cfg),
+        on_finish: ()=>{
+          // collect summary from live block state
+          const summary = window.__blockSummary || {};
+          jsPsych.data.write({
+            task: 'typing_block',
+            condition: cfg.name,
+            rsvp_hz: cfg.rsvp_hz,
+            speed_wpm_target: cfg.speed_wpm,
+            adaptive: cfg.adaptive,
+            ...summary
+          });
+          stopBlock();
+        }
+      }
+    }
+
+    // Block-scoped state
+    let state = null;
+    function startBlock(cfg){
+      const label = document.getElementById('condition-label');
+      const wordEl = document.getElementById('word');
+      const input = document.getElementById('input');
+      const bar = document.getElementById('bar');
+      const stats = document.getElementById('stats');
+      label.innerHTML = `<div class='small'>Condition: <b>${cfg.name}</b> — RSVP: ${cfg.rsvp_hz} Hz</div>`;
+
+      // init block state
+      state = {
+        cfg,
+        t0: performance.now(),
+        words_done: 0,
+        chars_typed: 0,
+        errors: 0,
+        correct: 0,
+        pace_ms_per_word: Math.max(900, Math.round(60000/ cfg.speed_wpm)), // target time per word
+        next_word: choice(WORDS),
+        timer: null,
+        rsvp: null,
+        targets: [],
+        rsvp_events: [], // stream of digits with timestamps
+        acc_history: [],
+      };
+
+      // render first word
+      wordEl.textContent = state.next_word;
+      input.value = '';
+      input.focus();
+
+      // input handling
+      input.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter' || e.key===' '){ e.preventDefault(); submitWord(); }
+      });
+
+      function submitWord(){
+        const typed = input.value.trim();
+        const target = state.next_word;
+        const correct = (typed === target);
+        state.correct += correct?1:0;
+        state.errors += correct?0:1;
+        state.words_done++;
+        state.chars_typed += typed.length;
+
+        // update simple adaptive pace in Medium: if accuracy >95% over last 10, speed up a bit; if <85%, slow down.
+        if(state.cfg.adaptive){
+          state.acc_history.push(correct);
+          if(state.acc_history.length>10) state.acc_history.shift();
+          const recentAcc = state.acc_history.reduce((a,b)=>a+(b?1:0),0)/state.acc_history.length;
+          if(state.acc_history.length>=6){
+            if(recentAcc>0.95) state.pace_ms_per_word = Math.max(700, state.pace_ms_per_word - 50);
+            if(recentAcc<0.85) state.pace_ms_per_word = Math.min(2000, state.pace_ms_per_word + 50);
+          }
+        }
+
+        // serve next word
+        state.next_word = choice(WORDS);
+        wordEl.textContent = state.next_word;
+        input.value = '';
+      }
+
+      // progress bar & stats updater
+      state.timer = setInterval(()=>{
+        const t = performance.now();
+        const elapsed = (t - state.t0)/1000;
+        const pct = Math.min(100, 100* elapsed / cfg.duration_s);
+        bar.style.width = pct + '%';
+        const acc = state.words_done>0? (state.correct/state.words_done): 0;
+        const wpm = (state.chars_typed/5) / (elapsed/60);
+        stats.textContent = `Words: ${state.words_done}  |  Accuracy: ${(acc*100).toFixed(0)}%  |  Pace ~${Math.round(60000/state.pace_ms_per_word)} wpm  |  Current WPM: ${isFinite(wpm)?wpm.toFixed(0):0}`;
+      }, 100);
+
+      // RSVP overlay
+      state.rsvp = startRSVP(cfg);
+
+      // keep references for cleanup
+      state._cleanupIntervals = [];
+
+      // end-of-block capture
+      state.endCapture = () => {
+        const t = performance.now();
+        const elapsed = (t - state.t0)/1000;
+        window.__blockSummary = {
+          words_done: state.words_done,
+          correct_words: state.correct,
+          errors: state.errors,
+          accuracy: state.words_done? state.correct/state.words_done : 0,
+          chars_typed: state.chars_typed,
+          elapsed_s: elapsed,
+          pace_ms_per_word: state.pace_ms_per_word,
+          rsvp_hz_effective: state.rsvp.hz,
+          rsvp_targets: JSON.stringify(state.targets),
+          rsvp_events_sample: JSON.stringify(state.rsvp.sample.slice(0,200))
+        };
+      }
+
+      // store for access in on_finish
+      window.__STATE = state;
+    }
+
+    function stopBlock(){
+      if(!state) return;
+      if(state.timer) clearInterval(state.timer);
+      if(state._cleanupIntervals) state._cleanupIntervals.forEach(clearInterval);
+      stopRSVP();
+      if(state.endCapture) state.endCapture();
+      document.getElementById('game-wrap').style.display = 'none';
+      state = null;
+    }
+
+    // -------------------------
+    // RSVP overlay engine (peripheral number wheel)
+    // -------------------------
+    let rsvpCtx = null, rsvpRAF = null;
+    function startRSVP(cfg){
+      const canvas = document.getElementById('rsvp-canvas');
+      rsvpCtx = canvas.getContext('2d');
+
+      const hz = cfg.rsvp_hz;           // digits per second
+      const frameMs = 1000 / Math.max(6, Math.min(30, hz));
+      let last = performance.now();
+
+      // schedule target times (avoid collisions)
+      const targets = [];
+      function scheduleTargets(){
+        const dur = cfg.duration_s;
+        let t = 5 + Math.random()*3; // first target after 5–8s
+        while(targets.length < TARGETS_PER_BLOCK && t < dur-5){
+          targets.push({ at_s: t, digit: Math.floor(Math.random()*10) });
+          t += MIN_GAP_BETWEEN_TARGETS + Math.random()*6;
+        }
+      }
+      scheduleTargets();
+      if(state) state.targets = targets;
+
+      const stream = []; // keep a small sample only (for debug)
+
+      let angle = 0;
+      function drawDigit(d, isTarget){
+        const ctx = rsvpCtx; const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        ctx.save();
+        ctx.translate(w/2, h/2);
+        ctx.rotate(angle);
+        ctx.fillStyle = isTarget? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.85)';
+        ctx.font = isTarget? 'bold 64px ui-sans-serif' : '600 60px ui-sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(d), 0, 0);
+        ctx.restore();
+        angle += 0.07; // slow rotation for aesthetics
+      }
+
+      let currentDigit = Math.floor(Math.random()*10);
+
+      function loop(){
+        const now = performance.now();
+        const elapsed_s = (now - state.t0)/1000;
+        if(now - last >= frameMs){
+          last = now;
+          // advance digit
+          currentDigit = (currentDigit + 1 + Math.floor(Math.random()*3)) % 10; // random-ish step
+          // is this frame a scheduled target?
+          let isTarget = false;
+          for(const tgt of targets){
+            if(!tgt.seen && Math.abs(elapsed_s - tgt.at_s) < (frameMs/1000)){
+              currentDigit = tgt.digit; // force the target digit for this frame
+              tgt.seen = true; tgt.ts = now; isTarget = true;
+            }
+          }
+          drawDigit(currentDigit, isTarget);
+          // record a tiny sample
+          if(stream.length<300) stream.push({t: elapsed_s, d: currentDigit, target: isTarget});
+        }
+        rsvpRAF = requestAnimationFrame(loop);
+      }
+      rsvpRAF = requestAnimationFrame(loop);
+
+      return { hz, sample: stream };
+    }
+
+    function stopRSVP(){
+      if(rsvpRAF) cancelAnimationFrame(rsvpRAF);
+      rsvpRAF = null; rsvpCtx = null;
+    }
+
+    // -------------------------
+    // Post-block probes
+    // -------------------------
+    function recognitionTrialsFor(blockName){
+      const tgts = (window.__STATE && window.__STATE.targets) || [];
+      const trials = [];
+
+      // --- Self-tests for 2AFC construction (do not alter flow) ---
+      const foilCounts = new Array(10).fill(0);
+      let leftRightBalance = 0; // >0 means more left, <0 means more right
+
+      tgts.forEach((tgt, idx)=>{
+        const correct = String(tgt.digit);
+        let foil = String(Math.floor(Math.random()*10));
+        while(foil===correct){ foil = String(Math.floor(Math.random()*10)); }
+        foilCounts[Number(foil)]++;
+        const opts = Math.random()<.5 ? [correct, foil] : [foil, correct];
+        leftRightBalance += (opts[0]===correct? 1 : -1);
+
+        // 2AFC trial
+        trials.push({
+          type: htmlButtonResponse,
+          stimulus: `<div class='center'><h3>Digit memory check</h3><p>During the last round, a faint digit briefly aligned in the top-right. Which digit flashed? <em>(If unsure, guess.)</em></p><div class='small'>Trial ${idx+1} of ${tgts.length} — Condition: <b>${blockName}</b></div></div>`,
+          choices: opts,
+          margin_vertical: '12px',
+          margin_horizontal: '16px',
+          data: { task:'rsvp_recognition', condition:blockName, target_idx: idx, correct_digit: correct, foil_digit: foil },
+          on_finish: (data)=>{
+            const choiceIdx = data.response; // 0 or 1
+            const chosen = opts[choiceIdx];
+            const side = choiceIdx===0? 'left':'right';
+            jsPsych.data.write({
+              task:'rsvp_recognition',
+              condition:blockName,
+              target_idx: idx,
+              correct: correct,
+              foil: foil,
+              chosen: chosen,
+              side: side,
+              is_correct: (chosen===correct),
+              rt_ms: data.rt
+            });
+          }
+        });
+
+        // Confidence trial (1–4), immediately after the 2AFC
+        trials.push({
+          type: surveyLikert,
+          preamble: `<div class='center'><div class='small'>Confidence for that choice</div></div>`,
+          questions: [{prompt:'How confident are you in your answer?', labels:['1 Not at all','2 Slightly','3 Mostly','4 Very'], required:true}],
+          data: { task:'rsvp_confidence', condition:blockName, target_idx: idx },
+          on_finish: (data)=>{
+            const resp = JSON.parse(data.response);
+            const conf = Number(resp['Q0']) + 1; // 1..4
+            jsPsych.data.write({ task:'rsvp_confidence', condition:blockName, target_idx: idx, confidence_1to4: conf });
+          }
+        });
+      });
+
+      // Log construction diagnostics once per block (helps QA)
+      jsPsych.data.write({
+        task: 'rsvp_2afc_diagnostics',
+        condition: blockName,
+        foil_histogram: JSON.stringify(foilCounts),
+        left_bias: leftRightBalance // expect ~0 across trials
+      });
+
+      return trials;
+    }
+
+    function flowSurvey(blockName){
+      return {
+        type: surveyLikert,
+        preamble: `<div class='center'><h3>Quick experience survey</h3><div class='small'>Think about just the last round (<b>${blockName}</b>).</div></div>`,
+        questions: [
+          {prompt:'The challenge of this round matched my skill.', labels:['Strongly disagree','Disagree','Neutral','Agree','Strongly agree'], required:true},
+          {prompt:'I was fully concentrated on the task.', labels:['Strongly disagree','Disagree','Neutral','Agree','Strongly agree'], required:true},
+          {prompt:'I lost track of time during that round.', labels:['Strongly disagree','Disagree','Neutral','Agree','Strongly agree'], required:true},
+          {prompt:'I enjoyed that round.', labels:['Strongly disagree','Disagree','Neutral','Agree','Strongly agree'], required:true}
+        ],
+        on_finish: ()=>{ jsPsych.data.addDataToLastTrial({task:'flow_survey', condition:blockName}); }
+      }
+    }
+
+    function retrospectiveTime(blockName, nominal_s){
+      return {
+        type: surveyText,
+        preamble: `<div class='center'><h3>Time estimate</h3><p>Roughly how many <b>seconds</b> did that round feel like?</p></div>`,
+        questions: [{prompt:'Your estimate (seconds):', placeholder: nominal_s.toString(), required:true}],
+        on_finish: (data)=>{
+          const resp = JSON.parse(data.response);
+          const val = Number(resp['Q0']);
+          jsPsych.data.write({ task:'retrospective_time', condition:blockName, felt_seconds: val, actual_seconds: nominal_s, distortion: (val - nominal_s)/nominal_s });
+        }
+      }
+    }
+
+    // -------------------------
+    // Build timeline
+    // -------------------------
+    const timeline = [];
+    timeline.push(instr);
+
+    // Optional practice (short)
+    timeline.push({
+      type: instructions,
+      pages:[`<div class='center'><h3>30‑second Practice</h3><p>You will get a short practice. Type the words, ignore the faint digits.</p></div>`],
+      show_clickable_nav:true
+    });
+    timeline.push(runTypingBlock({name:'Practice', duration_s:30, rsvp_hz:10, speed_wpm:35, adaptive:false}));
+
+    // Real blocks (counterbalanced order)
+    const order = jsPsych.randomization.shuffle(BLOCKS.slice());
+    order.forEach(cfg => {
+      timeline.push({ type: instructions, pages:[`<div class='center'><h3>Next Round: <b>${cfg.name}</b></h3><p>Focus on accuracy and pace. Ignore the corner digits.</p></div>`], show_clickable_nav:true });
+      timeline.push(runTypingBlock(cfg));
+      timeline.push(...recognitionTrialsFor(cfg.name));
+      timeline.push(flowSurvey(cfg.name));
+      timeline.push(retrospectiveTime(cfg.name, cfg.duration_s));
+    });
+
+    jsPsych.run(timeline);
+  </script>
+
+  <!-- Helpful message for very old browsers -->
+  <script nomodule="">
+    document.getElementById('diag-msg').innerHTML = '<span class="err">Your browser does not support ES modules. Please use a modern browser (Chrome, Edge, Firefox, Safari).</span>';
+  </script>
+
+
+</body></html>
